@@ -177,3 +177,145 @@ docker run -d --name mysql -e MYSQL_RANDOM_ROOT_PASSWORD=yes --network individua
 
 ### 端口映射
 
+```shell
+# 使用 -p 端口映射到宿主机上面
+docker run -d --name nginx -p 80:80 -p 443:443 nginx:1.12
+
+# ps 中 会使用 -> 来表示端口映射关系
+docker ps
+CONTAINER ID        IMAGE               COMMAND                  CREATED             STATUS              PORTS                                      NAMES
+bc79fc5d42a6        nginx:1.12          "nginx -g 'daemon of…"   4 seconds ago       Up 2 seconds        0.0.0.0:80->80/tcp, 0.0.0.0:443->443/tcp   nginx
+```
+
+## 数据
+
+### 挂载方式
+
+- **Bind Mount**：**容器目录 <-> 宿主机目录**。指定容器和宿主机目录，在这两个目录之间形成一个挂载的映射。使得容器内外对文件的读写，都是相互可见的。
+
+- **Volume** ：**容器目录 -> Docker 管理目录**。只需要指定容器内的目录，宿主机中的目录由 Docker 管理。这样可以无需关注容器目录到底挂载到了哪里。
+
+- **Tmpfs Mount**：**容器目录 -> 宿主机内存**。将容器目录挂载到宿主机内存中，注意这是非持久性的。
+
+![](https://i.loli.net/2020/05/11/mY3LWGl7F4dNEBQ.png)
+
+### 挂载文件
+
+```shell
+# 使用 使用 -v 或 --volume 来挂载宿主目录
+# 格式为 <host-path>:<container-path>
+$ docker run -d --name nginx -v /webapp/html:/usr/share/nginx/html nginx:1.12
+```
+
+可以使用 `inspect` 看到挂载状态
+
+```shell
+$ docker inspect nginx
+[
+    {
+## ......
+        "Mounts": [
+            {
+                "Type": "bind",
+                "Source": "/webapp/html",
+                "Destination": "/usr/share/nginx/html",
+                "Mode": "",
+                "RW": true,
+                "Propagation": "rprivate"
+            }
+        ],
+## ......
+    }
+]
+```
+
+也可以使用内存来临时挂载一个目录，注意这不是持久性的。
+
+```shell
+$ docker run -d --name webapp --tmpfs /webapp/cache webapp:latest
+```
+
+```shell
+$ docker inspect webapp
+[
+    {
+## ......
+         "Tmpfs": {
+            "/webapp/cache": ""
+        },
+## ......
+    }
+]
+```
+
+### 使用数据卷
+
+```shell
+# -v <name>:<container-path> 的方式命名数据卷
+$ docker run -d --name webapp -v appdata:/webapp/storage webapp:latest
+```
+
+### 数据卷操作
+
+```shell
+# 创建数据卷
+$ docker volume create appdata
+
+# 查看数据卷
+$ docker volume ls
+
+# 删除数据卷
+$ docker volume rm appdata
+
+# 指定删除与容器关联的数据卷
+$ docker rm -v webapp
+
+# 指定删除没有被容器引用的数据卷
+$ docker volume prune -f
+```
+
+### 数据卷容器
+
+数据卷容器，就是一个没有具体指定的应用，甚至不需要运行的容器，主要是为了定义一个或多个数据卷并持有它们的引用。
+
+```shell
+# 创建数据卷容器
+$ docker create --name appdata -v /webapp/storage ubuntu
+
+# 引用数据卷容器
+# --volumes-from 指定数据卷容器
+$ docker run -d --name webapp --volumes-from appdata webapp:latest
+```
+
+### 备份与迁移
+
+```shell
+$ docker run --rm --volumes-from appdata -v /backup:/backup ubuntu tar cvf /backup/backup.tar /webapp/storage
+```
+
+使用 `tar` 命令打包到临时的数据卷。
+
+* `--rm` 容器停止后自动删除。
+
+
+
+```shell
+$ docker run --rm --volumes-from appdata -v /backup:/backup ubuntu tar xvf /backup/backup.tar -C /webapp/storage --strip
+```
+
+恢复内容
+
+### 其他
+
+可以使用 `--mount` 更方便地传递参数。
+
+```shell
+$ docker run -d --name webapp webapp:latest --mount 'type=volume,src=appdata,dst=/webapp/storage,volume-driver=local,volume-opt=type=nfs,volume-opt=device=<nfs-server>:<nfs-path>' webapp:latest
+```
+
+## 镜像管理
+
+
+
+## Dockerfile
+
