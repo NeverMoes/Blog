@@ -191,6 +191,8 @@ bc79fc5d42a6        nginx:1.12          "nginx -g 'daemon of…"   4 seconds ago
 
 ### 挂载方式
 
+Docker 的数据挂载在实现上有三种方式：
+
 - **Bind Mount**：**容器目录 <-> 宿主机目录**。指定容器和宿主机目录，在这两个目录之间形成一个挂载的映射。使得容器内外对文件的读写，都是相互可见的。
 
 - **Volume** ：**容器目录 -> Docker 管理目录**。只需要指定容器内的目录，宿主机中的目录由 Docker 管理。这样可以无需关注容器目录到底挂载到了哪里。
@@ -319,3 +321,51 @@ $ docker run -d --name webapp webapp:latest --mount 'type=volume,src=appdata,dst
 
 ## Dockerfile
 
+
+
+## Maven 构建
+
+```xml
+<plugins>
+    <!--这是原有的spring boot插件-->
+    <plugin>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-maven-plugin</artifactId>
+    </plugin>
+    <!--新增的docker maven插件-->
+    <plugin>
+        <groupId>com.spotify</groupId>
+        <artifactId>docker-maven-plugin</artifactId>
+        <version>0.4.12</version>
+        <!--docker镜像相关的配置信息-->
+        <configuration>
+            <!--镜像名，这里用工程名-->
+            <imageName>${project.artifactId}</imageName>
+            <!--TAG,这里用工程版本号-->
+            <imageTags>
+                <imageTag>${project.version}</imageTag>
+            </imageTags>
+            <!--镜像的FROM，使用java官方镜像-->
+            <baseImage>java:8u111-jdk</baseImage>
+            <!--该镜像的容器启动后，直接运行spring boot工程-->
+            <entryPoint>["java", "-jar", "/${project.build.finalName}.jar"]</entryPoint>
+            <!--构建镜像的配置信息-->
+            <resources>
+                <resource>
+                    <targetPath>/</targetPath>
+                    <directory>${project.build.directory}</directory>
+                    <include>${project.build.finalName}.jar</include>
+                </resource>
+            </resources>
+        </configuration>
+    </plugin>
+</plugins>
+```
+
+
+
+[使用Maven插件为SpringBoot应用构建Docker镜像](http://www.macrozheng.com/#/reference/docker_maven?id=使用maven插件为springboot应用构建docker镜像)
+
+## 参考
+
+[[开发者必备的 Docker 实践指南](https://juejin.im/book/5b7ba116e51d4556f30b476c)](https://juejin.im/books)
