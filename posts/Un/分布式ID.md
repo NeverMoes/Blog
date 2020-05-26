@@ -45,7 +45,7 @@
 
 ![](https://i.loli.net/2020/05/14/hkaLnYfpd9S2QBc.png)
 
-Snowflake 算法会生成一个 `Long` 类型（64位）的 ID，分为四段，每一段的含义为：
+Snowflake 算法由 twitter 开源，这个算法会生成一个 `Long` 类型（64位）的 ID，分为四段，每一段的含义为：
 
 1. 正负位(1 bit)：一般都为正数，所以基本不用。
 2. 时间戳(41bit)：毫秒单位，是一个（当前时间戳 - 某个固定时间戳）的差值。
@@ -159,6 +159,20 @@ public class SnowFlakeShortUrl {
         }
     }
 }
+```
+
+### uid-generator （百度）
+
+```java
+LoadingCache<Key, Item> items = CacheBuilder.newBuilder()  
+            .maximumSize(1000)
+             .expireAfterWrite(1000)
+            .build(
+                new CacheLoader<Key, Item>() {
+                    public Item load(Key key) throws Exception {
+                        return getCacheFromRedis(key);
+                    }
+                });
 ```
 
 
